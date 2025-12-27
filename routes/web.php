@@ -10,6 +10,7 @@ use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\IncomeController; // [NEW] Link Controller
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -27,10 +28,16 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/portfolio', [PortfolioController::class, 'index'])->name('portfolio.index');
 
+    // Search routes
+    Route::get('/search', [SearchController::class, 'search'])->name('search');
+    Route::get('/search/details', [SearchController::class, 'details'])->name('search.details');
+    Route::post('/search/update', [SearchController::class, 'update'])->name('search.update');
+
     // Transaction routes
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::patch('/transactions/{transaction}', [TransactionController::class, 'update'])->name('transactions.update');
     Route::post('/transactions/bulk-categorize', [TransactionController::class, 'bulkCategorize'])->name('transactions.bulk-categorize');
+    Route::post('/transactions/bulk-update', [TransactionController::class, 'bulkUpdate'])->name('transactions.bulk-update');
     Route::get('/transactions/{transaction}/suggestions', [TransactionController::class, 'suggestions'])->name('transactions.suggestions');
 
     // Account routes

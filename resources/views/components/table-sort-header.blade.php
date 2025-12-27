@@ -1,7 +1,7 @@
 @props(['sortField', 'currentField' => '', 'direction' => 'asc', 'label'])
 
 <th {{ $attributes }}>
-    <a href="#"
+    <a href="javascript:void(0)"
        class="text-decoration-none text-muted d-flex align-items-center gap-1"
        aria-sort="{{ $currentField === $sortField ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}">
         {{ $label }}

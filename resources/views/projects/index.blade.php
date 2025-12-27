@@ -104,7 +104,7 @@
                     </thead>
                     <tbody>
                         @forelse($projects as $project)
-                            <tr>
+                            <tr id="project-{{ $project->id }}" class="{{ request('project_id') == $project->id ? 'table-active' : '' }}">
                                 <td class="ps-4">
                                     <div class="d-flex align-items-center gap-3">
                                         <div class="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle" style="width: 40px; height: 40px; background-color: {{ $project->color ?? '#6366f1' }}20; color: {{ $project->color ?? '#6366f1' }};">
@@ -196,6 +196,35 @@
     </div>
 
 @endsection
+
+@push('scripts')
+    <script>
+        // Scroll to and highlight project from search
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('project_id');
+
+            if (projectId) {
+                const element = document.getElementById(`project-${projectId}`);
+                if (element) {
+                    setTimeout(() => {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        element.style.animation = 'highlight-pulse 2s ease-in-out';
+                        setTimeout(() => element.style.animation = '', 2000);
+                    }, 300);
+                }
+            }
+        });
+    </script>
+
+    <style>
+        @keyframes highlight-pulse {
+            0%, 100% { background-color: transparent; box-shadow: none; }
+            50% { background-color: rgba(13, 110, 253, 0.15); box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2); }
+        }
+        .table-active { background-color: rgba(13, 110, 253, 0.08); }
+    </style>
+@endpush
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.0/dist/apexcharts.min.js"></script>

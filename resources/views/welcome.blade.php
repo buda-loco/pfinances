@@ -73,7 +73,7 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light pt-4">
         <div class="container">
-            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
+            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
                 <i class="fa-solid fa-gauge-high text-primary fs-3"></i>
                 <span class="outfit fs-4">PFinances</span>
             </a>

@@ -203,8 +203,57 @@
         @yield('content')
     </main>
 
+    <!-- Search Detail Modal -->
+    <x-search-detail-modal />
+
+    <script>
+        // Initialize global search detail modal instance
+        document.addEventListener('DOMContentLoaded', function() {
+            window.searchDetailModalInstance = Alpine.$data(document.querySelector('#search-detail-modal'));
+        });
+    </script>
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scroll Position Preservation -->
+    <script>
+        (function () {
+            // Restore scroll position after page load
+            const scrollPos = sessionStorage.getItem('scrollPosition');
+            if (scrollPos) {
+                window.addEventListener('load', function () {
+                    requestAnimationFrame(function () {
+                        window.scrollTo({
+                            top: parseInt(scrollPos),
+                            behavior: 'instant'
+                        });
+                        sessionStorage.removeItem('scrollPosition');
+                    });
+                });
+            }
+
+            // Save scroll position before navigation for same-domain links
+            document.addEventListener('click', function (e) {
+                const link = e.target.closest('a');
+                if (link && link.href && !link.getAttribute('data-no-scroll-save')) {
+                    // Only save for same-domain links that aren't anchors
+                    const url = new URL(link.href, window.location.origin);
+                    if (url.origin === window.location.origin && !link.href.includes('#')) {
+                        sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+                    }
+                }
+            });
+
+            // Also handle form submissions (for pagination forms if any)
+            document.addEventListener('submit', function (e) {
+                if (!e.target.getAttribute('data-no-scroll-save')) {
+                    sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+                }
+            });
+        })();
+    </script>
+
     @stack('scripts')
 </body>
 

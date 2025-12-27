@@ -62,8 +62,9 @@
                         </thead>
                         <tbody>
                             @forelse($tableAccounts as $account)
-                                <tr
-                                    x-show="match('{{ addslashes($account->name) }}', '{{ addslashes($account->institution ?? '') }}')">
+                                <tr id="account-{{ $account->id }}"
+                                    x-show="match('{{ addslashes($account->name) }}', '{{ addslashes($account->institution ?? '') }}')"
+                                    class="{{ request('account_id') == $account->id ? 'table-active' : '' }}">
                                     <td class="ps-4">
                                         <div class="d-flex align-items-center gap-3">
                                             <div class="flex-shrink-0 d-flex align-items-center justify-content-center bg-light rounded-4"
@@ -143,3 +144,48 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        // Scroll to and highlight account from search
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const accountId = urlParams.get('account_id');
+
+            if (accountId) {
+                const element = document.getElementById(`account-${accountId}`);
+                if (element) {
+                    // Smooth scroll to the element
+                    setTimeout(() => {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // Add pulsing highlight animation
+                        element.style.animation = 'highlight-pulse 2s ease-in-out';
+
+                        // Remove animation after it completes
+                        setTimeout(() => {
+                            element.style.animation = '';
+                        }, 2000);
+                    }, 300);
+                }
+            }
+        });
+    </script>
+
+    <style>
+        @keyframes highlight-pulse {
+            0%, 100% {
+                background-color: transparent;
+                box-shadow: none;
+            }
+            50% {
+                background-color: rgba(13, 110, 253, 0.15);
+                box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+            }
+        }
+
+        .table-active {
+            background-color: rgba(13, 110, 253, 0.08);
+        }
+    </style>
+@endpush

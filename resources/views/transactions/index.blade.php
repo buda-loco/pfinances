@@ -179,8 +179,9 @@
                     </thead>
                     <tbody>
                         @forelse ($transactions as $transaction)
-                            <tr x-data="{ 
-                                                        editing: false, 
+                            <tr id="transaction-{{ $transaction->id }}"
+                                x-data="{
+                                                        editing: false,
                                                         date: '{{ $transaction->transaction_date->format('Y-m-d') }}',
                                                         description: '{{ addslashes($transaction->description) }}',
                                                         categoryId: '{{ $transaction->category_id }}',
@@ -195,7 +196,8 @@
                                                             }
                                                             this.saving = false;
                                                         }
-                                                    }">
+                                                    }"
+                                class="{{ request('transaction_id') == $transaction->id ? 'table-active' : '' }}">
                                 <td class="ps-4">
                                     <div class="form-check">
                                         <input type="checkbox" :checked="selectedTransactions.includes({{ $transaction->id }})"
@@ -423,5 +425,46 @@
                 }
             }
         }
+
+        // Scroll to and highlight transaction from search
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const transactionId = urlParams.get('transaction_id');
+
+            if (transactionId) {
+                const element = document.getElementById(`transaction-${transactionId}`);
+                if (element) {
+                    // Smooth scroll to the element
+                    setTimeout(() => {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // Add pulsing highlight animation
+                        element.style.animation = 'highlight-pulse 2s ease-in-out';
+
+                        // Remove animation after it completes
+                        setTimeout(() => {
+                            element.style.animation = '';
+                        }, 2000);
+                    }, 300);
+                }
+            }
+        });
     </script>
+
+    <style>
+        @keyframes highlight-pulse {
+            0%, 100% {
+                background-color: transparent;
+                box-shadow: none;
+            }
+            50% {
+                background-color: rgba(13, 110, 253, 0.15);
+                box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+            }
+        }
+
+        .table-active {
+            background-color: rgba(13, 110, 253, 0.08);
+        }
+    </style>
 @endpush
