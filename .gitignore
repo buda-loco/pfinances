@@ -3,6 +3,14 @@
 .env
 .env.backup
 .env.production
+
+# Database files - IMPORTANT: Keep your financial data private!
+*.sqlite
+*.sqlite3
+*.db
+/database/*.sqlite
+/database/*.sqlite3
+/database/*.db
 .phpactor.json
 .phpunit.result.cache
 /.fleet
