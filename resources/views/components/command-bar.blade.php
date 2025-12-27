@@ -10,11 +10,17 @@
                 <input type="text"
                     x-model="query"
                     @input.debounce.300ms="performSearch()"
-                    @keydown.enter="handleEnter()"
+                    @keydown.enter.prevent="handleEnter()"
+                    @keydown.tab.prevent="focusFirstResult()"
+                    @keydown.arrow-down.prevent="focusFirstResult()"
                     class="form-control form-control-lg border-0 shadow-none outfit fw-medium"
                     placeholder="Search anything or type a command..."
                     style="font-size: 1.1rem;"
-                    x-ref="searchInput">
+                    x-ref="searchInput"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    :aria-expanded="searchResults.length > 0"
+                    aria-controls="search-results-list">
                 <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
             </div>
 
@@ -23,7 +29,10 @@
                 <!-- Search Results Table -->
                 <div x-show="searchResults.length > 0" x-cloak>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
+                        <table class="table table-hover align-middle mb-0"
+                               id="search-results-list"
+                               role="listbox"
+                               aria-label="Search results">
                             <thead class="table-light">
                                 <tr>
                                     <th class="ps-4 extra-small fw-bold text-uppercase text-muted tracking-wider">Type</th>
@@ -35,7 +44,17 @@
                             </thead>
                             <tbody>
                                 <template x-for="(result, index) in searchResults" :key="index">
-                                    <tr @click="showDetails(result.type, result.id)" style="cursor: pointer;">
+                                    <tr @click="showDetails(result.type, result.id)"
+                                        @keydown.enter.prevent="showDetails(result.type, result.id)"
+                                        @keydown.arrow-up.prevent="focusPreviousResult(index)"
+                                        @keydown.arrow-down.prevent="focusNextResult(index)"
+                                        @keydown.escape.prevent="focusSearchInput()"
+                                        :tabindex="focusedIndex === index ? 0 : -1"
+                                        :class="{ 'table-active': focusedIndex === index }"
+                                        :ref="'result-' + index"
+                                        role="option"
+                                        :aria-selected="focusedIndex === index"
+                                        style="cursor: pointer;">
                                         <td class="ps-4">
                                             <div class="d-flex align-items-center gap-2">
                                                 <div :class="`bg-${result.color} bg-opacity-10 text-${result.color} rounded-3 p-2 d-flex align-items-center justify-content-center`"
@@ -66,7 +85,10 @@
                     </div>
                     <div class="p-3 bg-light border-top text-center">
                         <span class="extra-small text-muted fw-bold">
-                            <span x-text="searchResults.length"></span> results found - Click any row to view details
+                            <span x-text="searchResults.length"></span> results found •
+                            <kbd class="bg-white border px-2 py-1 rounded">Tab</kbd> or <kbd class="bg-white border px-2 py-1 rounded">↓</kbd> to navigate •
+                            <kbd class="bg-white border px-2 py-1 rounded">Enter</kbd> to select •
+                            <kbd class="bg-white border px-2 py-1 rounded">Esc</kbd> to return
                         </span>
                     </div>
                 </div>
@@ -169,8 +191,10 @@
             query: '',
             searchResults: [],
             loading: false,
+            focusedIndex: -1,
 
             async performSearch() {
+                this.focusedIndex = -1; // Reset focus when new search is performed
                 if (this.query.length < 2) {
                     this.searchResults = [];
                     return;
@@ -212,14 +236,60 @@
             },
 
             handleEnter() {
-                // If there are search results, navigate to the first one
+                // If a result is focused, select it
+                if (this.focusedIndex >= 0 && this.searchResults[this.focusedIndex]) {
+                    const result = this.searchResults[this.focusedIndex];
+                    this.showDetails(result.type, result.id);
+                    return;
+                }
+
+                // If there are search results but none focused, select the first one
                 if (this.searchResults.length > 0) {
-                    this.navigateTo(this.searchResults[0].url);
+                    const result = this.searchResults[0];
+                    this.showDetails(result.type, result.id);
                     return;
                 }
 
                 // Otherwise, try command handling
                 this.handleCommand(this.query);
+            },
+
+            focusFirstResult() {
+                if (this.searchResults.length > 0) {
+                    this.focusedIndex = 0;
+                    this.$nextTick(() => {
+                        this.focusResultAtIndex(0);
+                    });
+                }
+            },
+
+            focusPreviousResult(currentIndex) {
+                if (currentIndex > 0) {
+                    this.focusedIndex = currentIndex - 1;
+                    this.focusResultAtIndex(this.focusedIndex);
+                } else {
+                    // If at the first result, go back to search input
+                    this.focusSearchInput();
+                }
+            },
+
+            focusNextResult(currentIndex) {
+                if (currentIndex < this.searchResults.length - 1) {
+                    this.focusedIndex = currentIndex + 1;
+                    this.focusResultAtIndex(this.focusedIndex);
+                }
+            },
+
+            focusResultAtIndex(index) {
+                const element = this.$refs['result-' + index];
+                if (element && element[0]) {
+                    element[0].focus();
+                }
+            },
+
+            focusSearchInput() {
+                this.focusedIndex = -1;
+                this.$refs.searchInput.focus();
             },
 
             handleCommand(query) {
@@ -261,8 +331,45 @@
     document.getElementById('command-bar').addEventListener('shown.bs.modal', function () {
         const input = this.querySelector('input[type="text"]');
         if (input) {
-            input.focus();
-            input.select();
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 100);
+        }
+    });
+
+    // Reset focus when modal closes
+    document.getElementById('command-bar').addEventListener('hidden.bs.modal', function () {
+        const searchComponent = Alpine.$data(this);
+        if (searchComponent) {
+            searchComponent.focusedIndex = -1;
+            searchComponent.query = '';
+            searchComponent.searchResults = [];
         }
     });
 </script>
+
+<style>
+    /* Keyboard navigation styles */
+    #search-results-list tbody tr:focus {
+        outline: 2px solid #0d6efd;
+        outline-offset: -2px;
+        box-shadow: inset 0 0 0 2px #0d6efd;
+    }
+
+    #search-results-list tbody tr.table-active {
+        background-color: rgba(13, 110, 253, 0.1);
+        font-weight: 500;
+    }
+
+    kbd {
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1;
+    }
+
+    /* Smooth transitions for focus changes */
+    #search-results-list tbody tr {
+        transition: background-color 0.15s ease-in-out;
+    }
+</style>
