@@ -21,14 +21,20 @@ class TransactionController extends Controller
         $query = Transaction::with(['account', 'category', 'project'])
             ->whereIn('account_id', $accounts->pluck('id'));
 
-        // Filter by uncategorized
+        // Filter by uncategorized (legacy parameter)
         if ($request->has('uncategorized') && $request->uncategorized == '1') {
             $query->whereNull('category_id');
         }
 
         // Filter by category
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            if ($request->category_id === 'uncategorized') {
+                // Show only uncategorized transactions
+                $query->whereNull('category_id');
+            } else {
+                // Show transactions with specific category
+                $query->where('category_id', $request->category_id);
+            }
         }
 
         // Filter by account

@@ -225,6 +225,12 @@ class SearchController extends Controller
                     $categories = Category::where('is_active', true)->orderBy('name')->get();
                     $accounts = Account::where('user_id', $userId)->where('is_active', true)->get();
 
+                    // Build category options with "Uncategorized" first
+                    $categoryOptions = [['value' => '', 'label' => '🏷️ Uncategorized']];
+                    foreach ($categories as $c) {
+                        $categoryOptions[] = ['value' => $c->id, 'label' => $c->name];
+                    }
+
                     $details = [
                         'title' => $transaction->description,
                         'type_label' => 'Transaction',
@@ -248,8 +254,8 @@ class SearchController extends Controller
                             ['name' => 'description', 'label' => 'Description', 'type' => 'text', 'value' => $transaction->description, 'required' => true, 'full_width' => true],
                             ['name' => 'account_id', 'label' => 'Account', 'type' => 'select', 'value' => $transaction->account_id, 'required' => true,
                              'options' => $accounts->map(fn($a) => ['value' => $a->id, 'label' => $a->name])->toArray()],
-                            ['name' => 'category_id', 'label' => 'Category', 'type' => 'select', 'value' => $transaction->category_id, 'required' => false,
-                             'options' => $categories->map(fn($c) => ['value' => $c->id, 'label' => $c->name])->toArray()],
+                            ['name' => 'category_id', 'label' => 'Category', 'type' => 'select', 'value' => $transaction->category_id ?? '', 'required' => false,
+                             'options' => $categoryOptions],
                             ['name' => 'merchant_name', 'label' => 'Merchant', 'type' => 'text', 'value' => $transaction->merchant_name, 'required' => false],
                             ['name' => 'notes_and_codes', 'label' => 'Notes', 'type' => 'textarea', 'value' => $transaction->notes_and_codes, 'required' => false, 'full_width' => true],
                         ],

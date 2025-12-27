@@ -93,7 +93,6 @@
                                                     x-model="editData[field.name]"
                                                     class="form-select"
                                                     :required="field.required">
-                                                <option value="">Select...</option>
                                                 <template x-for="option in field.options" :key="option.value">
                                                     <option :value="option.value" x-text="option.label"></option>
                                                 </template>

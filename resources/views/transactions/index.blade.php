@@ -41,21 +41,23 @@
             </div>
 
             <div class="col-12 col-md-4">
-                <div class="card border-0 shadow-sm p-4 hover-lift">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div>
-                            <p class="text-muted extra-small fw-bold text-uppercase mb-1 tracking-wider">Uncategorized</p>
-                            <h3 class="fw-bold mb-0 text-warning outfit">{{ number_format($uncategorizedCount) }}</h3>
-                            <div class="extra-small text-muted mt-1 fw-bold">
-                                {{ $totalTransactions > 0 ? round(($uncategorizedCount / $totalTransactions) * 100, 1) : 0 }}%
-                                OF TOTAL
+                <a href="{{ route('transactions.index', ['category_id' => 'uncategorized']) }}" class="text-decoration-none">
+                    <div class="card border-0 shadow-sm p-4 hover-lift" style="cursor: pointer;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <p class="text-muted extra-small fw-bold text-uppercase mb-1 tracking-wider">Uncategorized</p>
+                                <h3 class="fw-bold mb-0 text-warning outfit">{{ number_format($uncategorizedCount) }}</h3>
+                                <div class="extra-small text-muted mt-1 fw-bold">
+                                    {{ $totalTransactions > 0 ? round(($uncategorizedCount / $totalTransactions) * 100, 1) : 0 }}%
+                                    OF TOTAL
+                                </div>
+                            </div>
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-4 p-3">
+                                <i class="fa-solid fa-triangle-exclamation fs-4"></i>
                             </div>
                         </div>
-                        <div class="bg-warning bg-opacity-10 text-warning rounded-4 p-3">
-                            <i class="fa-solid fa-triangle-exclamation fs-4"></i>
-                        </div>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
 
@@ -112,6 +114,9 @@
                             <label class="form-label small fw-bold text-muted mb-1">Category</label>
                             <select name="category_id" class="form-select">
                                 <option value="">All Categories</option>
+                                <option value="uncategorized" {{ request('category_id') == 'uncategorized' ? 'selected' : '' }}>
+                                    🏷️ Uncategorized
+                                </option>
                                 @foreach($categories as $category)
                                     <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
                                         {{ $category->name }}
