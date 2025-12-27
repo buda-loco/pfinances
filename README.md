@@ -1,59 +1,94 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# PFinances - Premium Assets & Portfolio Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+PFinances is a powerful, self-hosted personal finance application built on the Laravel framework. It provides a comprehensive suite of tools to help you manage your assets, track your portfolio, and gain insights into your financial health.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Dashboard:** A comprehensive overview of your financial status, including account balances, recent transactions, and spending by category.
+- **Transactions:** A detailed list of all your transactions, with the ability to filter, sort, and categorize them.
+- **Accounts:** Manage all your bank accounts in one place, with support for multiple currencies.
+- **Budgets:** Set monthly budgets for different categories and track your spending against them.
+- **Categories:** Create custom categories for your income and expenses to better understand your spending habits.
+- **Projects:** Track your income and expenses for specific projects.
+- **Portfolio:** A high-level overview of your assets and liabilities, with a summary of your net worth.
+- **Import:** Import your transactions from a CSV file, with support for both Frollo and Excel formats.
+- **Data Integrity Check:** A built-in tool to help you identify and fix inconsistencies in your data.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## How it works
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+The application is built on the Laravel framework and uses a SQLite database to store your financial data. The frontend is built with Bootstrap, and it uses Alpine.js for some of the interactive components.
 
-## Learning Laravel
+### Data Integrity
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+The application includes two Artisan commands to help you maintain the integrity of your data:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- `app:data-integrity-check`: This command checks for transactions without an account and for accounts with mismatched balances.
+- `app:fix-account-balances`: This command recalculates the balance of all accounts based on their transactions.
 
-## Laravel Sponsors
+### Import
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+The application supports importing transactions from a CSV file. You can choose between two import services:
 
-### Premium Partners
+- **Frollo Import Service:** This service is designed to import CSV files exported from Frollo.
+- **Excel Import Service:** This service is a more generic CSV importer that can be used with a variety of file formats.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Getting Started
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/buda-loco/pfinances.git
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    composer install
+    npm install
+    ```
+
+3.  **Create your environment file:**
+
+    ```bash
+    cp .env.example .env
+    ```
+
+4.  **Generate your application key:**
+
+    ```bash
+    php artisan key:generate
+    ```
+
+5.  **Create the database file:**
+
+    ```bash
+    touch database/database.sqlite
+    ```
+
+6.  **Run the migrations:**
+
+    ```bash
+    php artisan migrate
+    ```
+
+7.  **Build the assets:**
+
+    ```bash
+    npm run build
+    ```
+
+8.  **Start the development server:**
+
+    ```bash
+    php artisan serve
+    ```
+
+You can now access the application at `http://localhost:8000`.
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Thank you for considering contributing to PFinances! Please feel free to open an issue or submit a pull request.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+PFinances is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
