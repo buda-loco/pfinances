@@ -56,7 +56,18 @@
 
 <body x-data="{ commandBarOpen: false, theme: 'light' }" @keydown.window.k.prevent.meta="commandBarOpen = true"
     @keydown.window.k.prevent.ctrl="commandBarOpen = true"
-    x-init="theme = document.documentElement.getAttribute('data-bs-theme'); $watch('theme', val => document.documentElement.setAttribute('data-bs-theme', val))">
+    x-init="
+        theme = document.documentElement.getAttribute('data-bs-theme');
+        $watch('theme', val => document.documentElement.setAttribute('data-bs-theme', val));
+        $watch('commandBarOpen', value => {
+            const modal = document.getElementById('command-bar');
+            if (value) {
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+                commandBarOpen = false;
+            }
+        });
+    ">
 
     <x-command-bar />
     <x-toast-container />
@@ -70,10 +81,6 @@
     <header class="sticky-top">
         <nav class="navbar navbar-expand-xl" role="navigation" aria-label="Main navigation">
             <div class="container-fluid px-4">
-                <a class="navbar-brand me-4" href="{{ route('dashboard') }}">
-                    <x-application-logo />
-                </a>
-
                 <button class="navbar-toggler border-0 shadow-none"
                     type="button"
                     data-bs-toggle="collapse"
@@ -85,7 +92,7 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="mainNavbar">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 small">
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('dashboard*') || request()->is('/') ? 'active' : '' }}"
                                 href="{{ route('dashboard') }}">
@@ -183,23 +190,11 @@
                     <div class="d-flex align-items-center gap-3 ms-xl-4">
                         <button
                             @click="commandBarOpen = true"
-                            class="btn btn-primary d-none d-xxl-flex align-items-center gap-2 px-3 py-2 fw-bold shadow-sm hover-glow"
+                            class="btn btn-primary d-none d-xxl-flex align-items-center gap-2 px-3 py-2 fw-bold shadow-sm hover-glow small"
                             style="border-radius: 12px; transition: all 0.3s ease;">
                             <i class="fa-solid fa-command"></i>
                             <span>Press ⌘K to Search</span>
                         </button>
-
-                        <button
-                            class="btn btn-light rounded-circle shadow-none border-0 p-0 d-flex align-items-center justify-content-center"
-                            style="width: 44px; height: 44px;"
-                            @click="theme = (theme === 'dark' ? 'light' : 'dark')"
-                            aria-label="Toggle theme"
-                            :aria-pressed="theme === 'dark' ? 'true' : 'false'">
-                            <i class="fa-solid"
-                                :class="theme === 'dark' ? 'fa-sun text-warning' : 'fa-moon text-primary'"></i>
-                        </button>
-
-                        <div class="vr mx-1 opacity-10 d-none d-lg-block"></div>
 
                         <div class="dropdown">
                             <button

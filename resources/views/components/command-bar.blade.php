@@ -168,20 +168,6 @@
                         </div>
                         <span class="badge bg-light text-muted fw-bold border extra-small">N B</span>
                     </button>
-
-                    <!-- Settings -->
-                    <div class="bg-light py-2 px-4 border-bottom border-top">
-                        <span class="extra-small fw-bold text-muted text-uppercase tracking-wider">Appearance</span>
-                    </div>
-                    <button
-                        class="list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center justify-content-between"
-                        @click="document.documentElement.setAttribute('data-bs-theme', document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark'); commandBarOpen = false">
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa-solid fa-circle-half-stroke text-secondary fs-5" style="width: 25px;"></i>
-                            <span class="fw-semibold text-dark">Toggle Dark Mode</span>
-                        </div>
-                        <span class="badge bg-light text-muted fw-bold border extra-small">T D</span>
-                    </button>
                     </div>
                 </div>
             </div>
