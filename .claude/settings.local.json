@@ -6,7 +6,12 @@
       "Bash(npm install:*)",
       "WebSearch",
       "WebFetch(domain:bricxlabs.com)",
-      "WebFetch(domain:www.designrush.com)"
+      "WebFetch(domain:www.designrush.com)",
+      "Bash(grep:*)",
+      "Bash(done)",
+      "Bash(php artisan cache:clear:*)",
+      "Bash(php artisan view:clear:*)",
+      "Bash(php artisan tinker:*)"
     ]
   }
 }

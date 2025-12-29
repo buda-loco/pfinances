@@ -11,10 +11,11 @@ class PortfolioController extends Controller
     public function index()
     {
         $group = request('group', 'monthly');
+        $isSqlite = config('database.default') === 'sqlite';
 
-        // 1. Handle Year Filtering
-        // Get all available years first
-        $availableYears = AccountBalance::selectRaw("strftime('%Y', date) as year")
+        // 1. Handle Year Filtering - database agnostic
+        $yearSql = $isSqlite ? "strftime('%Y', date)" : "YEAR(date)";
+        $availableYears = AccountBalance::selectRaw("$yearSql as year")
             ->distinct()
             ->orderBy('year', 'desc')
             ->pluck('year')
@@ -23,21 +24,25 @@ class PortfolioController extends Controller
         // Get selected years from request or default to all
         $selectedYears = request('years', $availableYears);
 
-        // Ensure selectedYears is an array if it comes as a string (rare but possible in some query string formats)
+        // Ensure selectedYears is an array if it comes as a string
         if (is_string($selectedYears)) {
             $selectedYears = explode(',', $selectedYears);
         }
 
-        // Define SQL select for grouping
+        // Define SQL select for grouping - database agnostic
         if ($group === 'annually') {
-            $periodSql = "strftime('%Y', date)";
+            $periodSql = $isSqlite
+                ? "strftime('%Y', date)"
+                : "YEAR(date)";
         } elseif ($group === 'quarterly') {
-            // SQLite specific for Quarters: YYYY-QN
-            // strftime('%Y', date) || '-Q' || ((strftime('%m', date) - 1) / 3 + 1)
-            $periodSql = "strftime('%Y', date) || '-Q' || ((strftime('%m', date) - 1) / 3 + 1)";
+            $periodSql = $isSqlite
+                ? "strftime('%Y', date) || '-Q' || ((strftime('%m', date) - 1) / 3 + 1)"
+                : "CONCAT(YEAR(date), '-Q', QUARTER(date))";
         } else {
             // Default Monthly
-            $periodSql = "strftime('%Y-%m', date)";
+            $periodSql = $isSqlite
+                ? "strftime('%Y-%m', date)"
+                : "DATE_FORMAT(date, '%Y-%m')";
         }
 
         $balances = AccountBalance::select(
@@ -45,7 +50,7 @@ class PortfolioController extends Controller
             DB::raw("$periodSql as period"),
             DB::raw('SUM(balance) as total_balance')
         )
-            ->whereIn(DB::raw("strftime('%Y', date)"), $selectedYears) // Apply Year Filter
+            ->whereIn(DB::raw($yearSql), $selectedYears) // Apply Year Filter - database agnostic
             ->groupBy('currency', 'period')
             ->orderBy('period', 'asc')
             ->get();
@@ -118,9 +123,9 @@ class PortfolioController extends Controller
         }, $labels));
 
         // 4. Prepare Matrix Data (Account x Date view)
-        // Apply Year Filter to matrix dates too
+        // Apply Year Filter to matrix dates too - database agnostic
         $matrixDates = AccountBalance::select('date')
-            ->whereIn(DB::raw("strftime('%Y', date)"), $selectedYears)
+            ->whereIn(DB::raw($yearSql), $selectedYears)
             ->distinct()
             ->orderBy('date')
             ->pluck('date');

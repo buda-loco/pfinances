@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Account extends Model
 {
     protected $fillable = [
-        'user_id',
+        // 'user_id', // SECURITY: Removed from fillable to prevent mass assignment attacks
         'entity_type_id',
         'account_type',
         'ownership',
@@ -22,6 +22,9 @@ class Account extends Model
         'is_active',
         'notes',
     ];
+
+    // Guard user_id from mass assignment
+    protected $guarded = ['user_id'];
 
     protected $casts = [
         'opening_balance' => 'decimal:2',

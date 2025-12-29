@@ -8,16 +8,25 @@ use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
+    /**
+     * Escape special LIKE wildcards to prevent SQL injection
+     */
+    private function escapeLike($value)
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
     public function index(Request $request)
     {
         $query = Project::query();
 
-        // Search
+        // Search - sanitize to prevent SQL injection
         if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('code', 'like', '%' . $request->search . '%')
-                    ->orWhere('description', 'like', '%' . $request->search . '%');
+            $searchTerm = $this->escapeLike($request->search);
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('code', 'like', '%' . $searchTerm . '%')
+                    ->orWhere('description', 'like', '%' . $searchTerm . '%');
             });
         }
 
@@ -88,18 +97,20 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:projects,code',
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'budget' => 'nullable|numeric|min:0',
-            'color' => 'nullable|string|max:7',
+            'budget' => 'nullable|numeric|min:0|max:999999999.99',
+            'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'status' => 'required|in:planning,active,completed,archived',
         ]);
 
-        Project::create($validated);
+        $project = Project::create($validated);
 
         return redirect()->route('projects.index')
-            ->with('success', 'Project created successfully.');
+            ->with('success', 'Project created successfully.')
+            ->with('created_project_id', $project->id)
+            ->with('created_project_name', $project->name);
     }
 
     public function show(Project $project)
@@ -138,11 +149,11 @@ class ProjectController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:projects,code,' . $project->id,
-            'description' => 'nullable|string',
+            'description' => 'nullable|string|max:1000',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'budget' => 'nullable|numeric|min:0',
-            'color' => 'nullable|string|max:7',
+            'budget' => 'nullable|numeric|min:0|max:999999999.99',
+            'color' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'status' => 'required|in:planning,active,completed,archived',
         ]);
 

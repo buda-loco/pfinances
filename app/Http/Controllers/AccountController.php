@@ -8,6 +8,14 @@ use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
+    /**
+     * Escape special LIKE wildcards to prevent SQL injection
+     */
+    private function escapeLike($value)
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
@@ -31,14 +39,14 @@ class AccountController extends Controller
         // 2. New Logic for Detailed Table (Search, Sort, Paginate)
         $query = Account::where('user_id', $user->id)->with('entityType');
 
-        // Search
+        // Search - sanitize to prevent SQL injection
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('institution', 'like', "%{$search}%")
-                    ->orWhere('currency', 'like', "%{$search}%")
-                    ->orWhere('account_number', 'like', "%{$search}%");
+            $searchTerm = $this->escapeLike($request->search);
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('institution', 'like', "%{$searchTerm}%")
+                    ->orWhere('currency', 'like', "%{$searchTerm}%")
+                    ->orWhere('account_number', 'like', "%{$searchTerm}%");
             });
         }
 
@@ -92,21 +100,23 @@ class AccountController extends Controller
             'account_type' => 'required|in:bank,credit_card,savings,investment,travel_money,cash,other',
             'ownership' => 'required|in:buda,gupi,shared',
             'institution' => 'nullable|string|max:255',
-            'currency' => 'required|string|max:3',
-            'opening_balance' => 'required|numeric',
-            'current_balance' => 'required|numeric',
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
+            'opening_balance' => 'required|numeric|min:-999999999.99|max:999999999.99',
+            'current_balance' => 'required|numeric|min:-999999999.99|max:999999999.99',
             'account_number' => 'nullable|string|max:255',
             'entity_type_id' => 'nullable|exists:entity_types,id',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $validated['user_id'] = auth()->id();
         $validated['is_active'] = true;
 
-        Account::create($validated);
+        $account = Account::create($validated);
 
         return redirect()->route('accounts.index')
-            ->with('success', 'Account created successfully!');
+            ->with('success', 'Account created successfully.')
+            ->with('created_account_id', $account->id)
+            ->with('created_account_name', $account->name);
     }
 
     public function edit(Account $account)
@@ -134,18 +144,18 @@ class AccountController extends Controller
             'account_type' => 'required|in:bank,credit_card,savings,investment,travel_money,cash,other',
             'ownership' => 'required|in:buda,gupi,shared',
             'institution' => 'nullable|string|max:255',
-            'currency' => 'required|string|max:3',
-            'current_balance' => 'required|numeric',
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
+            'current_balance' => 'required|numeric|min:-999999999.99|max:999999999.99',
             'account_number' => 'nullable|string|max:255',
             'entity_type_id' => 'nullable|exists:entity_types,id',
             'is_active' => 'boolean',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $account->update($validated);
 
         return redirect()->route('accounts.index')
-            ->with('success', 'Account updated successfully!');
+            ->with('success', 'Account updated successfully.');
     }
 
     public function destroy(Account $account)
@@ -163,6 +173,6 @@ class AccountController extends Controller
         $account->delete();
 
         return redirect()->route('accounts.index')
-            ->with('success', 'Account deleted successfully!');
+            ->with('success', 'Account deleted successfully.');
     }
 }

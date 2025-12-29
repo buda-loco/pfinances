@@ -13,8 +13,8 @@
                     <p class="small text-muted mb-0">Track expenses for trips, purchases, and tax purposes.</p>
                 </div>
                 <div class="col-12 col-md-auto">
-                    <a href="{{ route('projects.create') }}" class="btn btn-primary d-flex align-items-center justify-content-center gap-2 px-4 fw-bold">
-                        <i class="fa-solid fa-plus small"></i> New Project
+                    <a href="{{ route('projects.create') }}" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold">
+                        <i class="fa-solid fa-plus"></i> New Project
                     </a>
                 </div>
             </div>
@@ -215,6 +215,11 @@
                 }
             }
         });
+
+        // Show success toast for newly created project
+        @if(session('created_project_id'))
+            window.toast('Project "{{ session('created_project_name') }}" created successfully.', 'success', 5000);
+        @endif
     </script>
 
     <style>

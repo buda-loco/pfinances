@@ -3,14 +3,25 @@
 @section('title', 'Edit Account')
 
 @section('content')
+    <x-breadcrumb :items="[
+        ['label' => 'Accounts', 'url' => route('accounts.index')],
+        ['label' => $account->name]
+    ]" />
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 px-4 py-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0">Edit Account: {{ $account->name }}</h5>
-            <form action="{{ route('accounts.destroy', $account) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this account?')">
+            <form id="delete-account-form" action="{{ route('accounts.destroy', $account) }}" method="POST">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-link link-danger p-0 text-decoration-none small">
+                <button type="button"
+                    @click="$dispatch('confirm', {
+                        title: 'Delete Account',
+                        message: 'Are you sure you want to delete this account? This action cannot be undone.',
+                        confirmText: 'Delete',
+                        onConfirm: () => document.getElementById('delete-account-form').submit()
+                    })"
+                    class="btn btn-link link-danger p-0 text-decoration-none small">
                     <i class="fa-solid fa-trash-can me-1"></i> Delete Account
                 </button>
             </form>

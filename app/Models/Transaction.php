@@ -9,7 +9,7 @@ class Transaction extends Model
 {
     protected $fillable = [
         'account_id',
-        'user_id',
+        // 'user_id', // SECURITY: Removed from fillable to prevent mass assignment attacks
         'category_id',
         'project_id',
         'entity_type_id',
@@ -40,6 +40,9 @@ class Transaction extends Model
         'is_included',
         'metadata',
     ];
+
+    // Guard user_id from mass assignment
+    protected $guarded = ['user_id'];
 
     protected $casts = [
         'transaction_date' => 'date',

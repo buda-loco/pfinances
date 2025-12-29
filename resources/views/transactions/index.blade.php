@@ -68,10 +68,14 @@
                     <div class="col-12 col-lg-auto">
                         <h5 class="fw-bold mb-0">Transactions List</h5>
                     </div>
-                    <div class="col-12 col-lg d-flex justify-content-lg-end">
-                        <a href="{{ route('transactions.index', array_merge(request()->query(), ['action' => 'add'])) }}"
-                            class="btn btn-primary d-flex align-items-center justify-content-center gap-2">
-                            <i class="fa-solid fa-plus small"></i> Add New
+                    <div class="col-12 col-lg d-flex justify-content-lg-end gap-2">
+                        <a href="{{ route('transactions.export', request()->query()) }}"
+                            class="btn btn-outline-success d-flex align-items-center gap-2 fw-bold">
+                            <i class="fa-solid fa-download"></i> Export CSV
+                        </a>
+                        <a href="{{ route('transactions.create') }}"
+                            class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold">
+                            <i class="fa-solid fa-plus"></i> Add Transaction
                         </a>
                     </div>
                 </div>
@@ -156,9 +160,10 @@
                     <button type="button" @click="bulkUpdate()" class="btn btn-primary btn-sm px-3">Apply</button>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <input type="text" x-model="quickSearchCategory" 
-                        class="form-control form-control-sm" 
+                    <input type="text" x-model="quickSearchCategory"
+                        class="form-control form-control-sm"
                         placeholder="Quick search category..."
+                        aria-label="Quick search category"
                         style="width: 200px;"
                         @input="filterCategories()">
                 </div>
@@ -174,12 +179,12 @@
                                     <input type="checkbox" @change="toggleAll($event)" class="form-check-input">
                                 </div>
                             </th>
-                            <th>Date</th>
-                            <th style="min-width: 250px;">Description</th>
-                            <th>Account</th>
-                            <th>Category</th>
-                            <th class="text-end">Amount</th>
-                            <th class="text-center">Actions</th>
+                            <x-table-sort-header sortField="transaction_date" label="Date" route="transactions.index" />
+                            <x-table-sort-header sortField="description" label="Description" route="transactions.index" style="min-width: 250px;" />
+                            <x-table-sort-header sortField="account.name" label="Account" route="transactions.index" />
+                            <x-table-sort-header sortField="category.name" label="Category" route="transactions.index" />
+                            <x-table-sort-header sortField="amount" label="Amount" route="transactions.index" class="text-end" />
+                            <th class="text-center text-muted extra-small fw-bold text-uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -197,7 +202,11 @@
                                                             const success = await saveTransaction({{ $transaction->id }}, this.categoryId, this.date, this.description, this.accountId);
                                                             if (success) {
                                                                 this.editing = false;
-                                                                window.location.reload(); // Simple refresh for now to update UI
+                                                                window.toast('Transaction updated successfully.', 'success', 3000);
+                                                                // Reload to show updated data without jarring page reload
+                                                                setTimeout(() => window.location.reload(), 500);
+                                                            } else {
+                                                                window.toast('Failed to update transaction. Please try again.', 'danger', 5000);
                                                             }
                                                             this.saving = false;
                                                         }
@@ -270,7 +279,8 @@
                                     </template>
                                 </td>
                                 <td class="text-end fw-bold {{ $transaction->amount >= 0 ? 'text-success' : 'text-dark' }}">
-                                    {{ $transaction->currency }} {{ number_format($transaction->amount, 2) }}
+                                    <i class="fa-solid {{ $transaction->amount >= 0 ? 'fa-arrow-up' : 'fa-arrow-down' }} small me-1"></i>
+                                    {{ $transaction->currency }} {{ number_format(abs($transaction->amount), 2) }}
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex align-items-center justify-content-center gap-2">
@@ -320,12 +330,6 @@
             {{ $transactions->links() }}
         </div>
     </div>
-
-    <!-- Transaction Form Modal -->
-    <x-modal name="transaction-form-modal" :show="request('action') === 'add' || request('action') === 'edit'"
-        title="Transaction Details" maxWidth="lg">
-        @include('transactions.partials.form', ['transaction' => $transaction ?? null])
-    </x-modal>
 
 @endsection
 
@@ -421,11 +425,14 @@
                         });
                         const data = await response.json();
                         if (data.success) {
-                            window.location.reload();
+                            window.toast(data.message || 'Transactions updated successfully.', 'success', 3000);
+                            setTimeout(() => window.location.reload(), 500);
+                        } else {
+                            window.toast(data.message || 'Failed to update transactions.', 'danger', 5000);
                         }
                     } catch (error) {
                         console.error('Error bulk updating:', error);
-                        alert('Failed to update transactions');
+                        window.toast('An error occurred while updating transactions.', 'danger', 5000);
                     }
                 }
             }

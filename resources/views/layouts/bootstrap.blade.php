@@ -32,6 +32,24 @@
         .navbar-brand {
             padding: 0;
         }
+
+        .hover-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .hover-glow:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(13, 110, 253, 0.4) !important;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(13, 110, 253, 0.35);
+            }
+        }
     </style>
 
 </head>
@@ -73,6 +91,38 @@
                                 href="{{ route('dashboard') }}">
                                 <i class="fa-solid fa-house"></i> Dashboard
                             </a>
+                        </li>
+                        <li class="nav-item dropdown" x-data="{ open: false }" @click.away="open = false">
+                            <a class="nav-link" href="javascript:void(0)" @click="open = !open" style="cursor: pointer;">
+                                <i class="fa-solid fa-plus-circle"></i> Create New
+                            </a>
+                            <ul class="dropdown-menu shadow-lg border-0 rounded-3 py-2" :class="{ 'show': open }" style="position: absolute; z-index: 1050;">
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3" href="{{ route('transactions.index') }}?action=add">
+                                        <i class="fa-solid fa-receipt text-success me-2"></i> Transaction
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3" href="{{ route('accounts.index') }}?action=add">
+                                        <i class="fa-solid fa-wallet text-info me-2"></i> Account
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3" href="{{ route('projects.index') }}?action=add">
+                                        <i class="fa-solid fa-rocket text-primary me-2"></i> Project
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3" href="{{ route('categories.index') }}?action=add">
+                                        <i class="fa-solid fa-tags text-warning me-2"></i> Category
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3" href="{{ route('budgets.index') }}?action=add">
+                                        <i class="fa-solid fa-bullseye text-danger me-2"></i> Budget
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {{ request()->is('transactions*') ? 'active' : '' }}"
@@ -131,14 +181,13 @@
                     </ul>
 
                     <div class="d-flex align-items-center gap-3 ms-xl-4">
-                        <div class="position-relative d-none d-xxl-block" style="width: 240px;">
-                            <i
-                                class="fa-solid fa-magnifying-glass position-absolute top-50 start-0 translate-middle-y ms-3 text-muted opacity-50 small"></i>
-                            <input type="text"
-                                class="form-control bg-light border-0 rounded-pill ps-5 py-2 extra-small fw-bold"
-                                placeholder="SEARCH (⌘K)" @click="commandBarOpen = true" readonly
-                                style="cursor: pointer;">
-                        </div>
+                        <button
+                            @click="commandBarOpen = true"
+                            class="btn btn-primary d-none d-xxl-flex align-items-center gap-2 px-3 py-2 fw-bold shadow-sm hover-glow"
+                            style="border-radius: 12px; transition: all 0.3s ease;">
+                            <i class="fa-solid fa-command"></i>
+                            <span>Press ⌘K to Search</span>
+                        </button>
 
                         <button
                             class="btn btn-light rounded-circle shadow-none border-0 p-0 d-flex align-items-center justify-content-center"

@@ -3,6 +3,11 @@
 @section('title', 'Create Budget')
 
 @section('content')
+    <x-breadcrumb :items="[
+        ['label' => 'Budgets', 'url' => route('budgets.index')],
+        ['label' => 'Create New Budget']
+    ]" />
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 px-4 py-3">
             <h5 class="fw-bold mb-0">Create New Budget</h5>

@@ -10,17 +10,11 @@
                 <input type="text"
                     x-model="query"
                     @input.debounce.300ms="performSearch()"
-                    @keydown.enter.prevent="handleEnter()"
-                    @keydown.tab.prevent="focusFirstResult()"
-                    @keydown.arrow-down.prevent="focusFirstResult()"
+                    @keydown="handleKeyDown($event)"
                     class="form-control form-control-lg border-0 shadow-none outfit fw-medium"
                     placeholder="Search anything or type a command..."
                     style="font-size: 1.1rem;"
-                    x-ref="searchInput"
-                    role="combobox"
-                    aria-autocomplete="list"
-                    :aria-expanded="searchResults.length > 0"
-                    aria-controls="search-results-list">
+                    x-ref="searchInput">
                 <button type="button" class="btn-close" aria-label="Close" data-bs-dismiss="modal"></button>
             </div>
 
@@ -44,16 +38,10 @@
                             </thead>
                             <tbody>
                                 <template x-for="(result, index) in searchResults" :key="index">
-                                    <tr @click="showDetails(result.type, result.id)"
-                                        @keydown.enter.prevent="showDetails(result.type, result.id)"
-                                        @keydown.arrow-up.prevent="focusPreviousResult(index)"
-                                        @keydown.arrow-down.prevent="focusNextResult(index)"
-                                        @keydown.escape.prevent="focusSearchInput()"
-                                        :tabindex="focusedIndex === index ? 0 : -1"
+                                    <tr @click="selectResult(index)"
                                         :class="{ 'table-active': focusedIndex === index }"
-                                        :ref="'result-' + index"
-                                        role="option"
-                                        :aria-selected="focusedIndex === index"
+                                        :data-index="index"
+                                        class="search-result-row"
                                         style="cursor: pointer;">
                                         <td class="ps-4">
                                             <div class="d-flex align-items-center gap-2">
@@ -85,10 +73,15 @@
                     </div>
                     <div class="p-3 bg-light border-top text-center">
                         <span class="extra-small text-muted fw-bold">
-                            <span x-text="searchResults.length"></span> results found •
-                            <kbd class="bg-white border px-2 py-1 rounded">Tab</kbd> or <kbd class="bg-white border px-2 py-1 rounded">↓</kbd> to navigate •
-                            <kbd class="bg-white border px-2 py-1 rounded">Enter</kbd> to select •
-                            <kbd class="bg-white border px-2 py-1 rounded">Esc</kbd> to return
+                            <span x-text="searchResults.length"></span> results found
+                            <span x-show="focusedIndex >= 0" class="text-primary">
+                                • Result <span x-text="focusedIndex + 1"></span> of <span x-text="searchResults.length"></span> focused
+                            </span>
+                            <br>
+                            <kbd class="bg-white border px-2 py-1 rounded small">Tab</kbd> or <kbd class="bg-white border px-2 py-1 rounded small">↓</kbd> to navigate •
+                            <kbd class="bg-white border px-2 py-1 rounded small">↑ ↓</kbd> to move •
+                            <kbd class="bg-white border px-2 py-1 rounded small">Enter</kbd> to select •
+                            <kbd class="bg-white border px-2 py-1 rounded small">Esc</kbd> to return
                         </span>
                     </div>
                 </div>
@@ -128,25 +121,52 @@
 
                     <!-- Quick Actions -->
                     <div class="bg-light py-2 px-4 border-bottom border-top">
-                        <span class="extra-small fw-bold text-muted text-uppercase tracking-wider">Quick Actions</span>
+                        <span class="extra-small fw-bold text-muted text-uppercase tracking-wider">Create New</span>
                     </div>
+                    <button
+                        class="list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center justify-content-between"
+                        @click="window.location.href='{{ route('transactions.index') }}?action=add'">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa-solid fa-plus-circle text-success fs-5" style="width: 25px;"></i>
+                            <span class="fw-semibold text-dark">New Transaction</span>
+                        </div>
+                        <span class="badge bg-light text-muted fw-bold border extra-small">N T</span>
+                    </button>
                     <button
                         class="list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center justify-content-between"
                         @click="window.location.href='{{ route('accounts.index') }}?action=add'">
                         <div class="d-flex align-items-center gap-3">
-                            <i class="fa-solid fa-plus text-info fs-5" style="width: 25px;"></i>
-                            <span class="fw-semibold text-dark">Add Account</span>
+                            <i class="fa-solid fa-plus-circle text-info fs-5" style="width: 25px;"></i>
+                            <span class="fw-semibold text-dark">New Account</span>
                         </div>
                         <span class="badge bg-light text-muted fw-bold border extra-small">N A</span>
                     </button>
                     <button
                         class="list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center justify-content-between"
-                        @click="window.location.href='{{ route('transactions.index') }}?action=add'">
+                        @click="window.location.href='{{ route('projects.index') }}?action=add'">
                         <div class="d-flex align-items-center gap-3">
-                            <i class="fa-solid fa-plus text-warning fs-5" style="width: 25px;"></i>
-                            <span class="fw-semibold text-dark">New Transaction</span>
+                            <i class="fa-solid fa-plus-circle text-primary fs-5" style="width: 25px;"></i>
+                            <span class="fw-semibold text-dark">New Project</span>
                         </div>
-                        <span class="badge bg-light text-muted fw-bold border extra-small">N T</span>
+                        <span class="badge bg-light text-muted fw-bold border extra-small">N P</span>
+                    </button>
+                    <button
+                        class="list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center justify-content-between"
+                        @click="window.location.href='{{ route('categories.index') }}?action=add'">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa-solid fa-plus-circle text-warning fs-5" style="width: 25px;"></i>
+                            <span class="fw-semibold text-dark">New Category</span>
+                        </div>
+                        <span class="badge bg-light text-muted fw-bold border extra-small">N C</span>
+                    </button>
+                    <button
+                        class="list-group-item list-group-item-action border-0 py-3 px-4 d-flex align-items-center justify-content-between"
+                        @click="window.location.href='{{ route('budgets.index') }}?action=add'">
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa-solid fa-plus-circle text-danger fs-5" style="width: 25px;"></i>
+                            <span class="fw-semibold text-dark">New Budget</span>
+                        </div>
+                        <span class="badge bg-light text-muted fw-bold border extra-small">N B</span>
                     </button>
 
                     <!-- Settings -->
@@ -194,7 +214,7 @@
             focusedIndex: -1,
 
             async performSearch() {
-                this.focusedIndex = -1; // Reset focus when new search is performed
+                this.focusedIndex = -1;
                 if (this.query.length < 2) {
                     this.searchResults = [];
                     return;
@@ -220,76 +240,69 @@
                 }
             },
 
-            navigateTo(url) {
-                window.location.href = url;
+            handleKeyDown(e) {
+                // Handle keyboard navigation
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (this.searchResults.length > 0) {
+                        if (this.focusedIndex < this.searchResults.length - 1) {
+                            this.focusedIndex++;
+                        } else {
+                            this.focusedIndex = 0;
+                        }
+                        this.scrollToFocused();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (this.searchResults.length > 0) {
+                        if (this.focusedIndex > 0) {
+                            this.focusedIndex--;
+                        } else {
+                            this.focusedIndex = this.searchResults.length - 1;
+                        }
+                        this.scrollToFocused();
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (this.focusedIndex >= 0 && this.searchResults[this.focusedIndex]) {
+                        this.selectResult(this.focusedIndex);
+                    } else if (this.searchResults.length > 0) {
+                        this.selectResult(0);
+                    } else {
+                        this.handleCommand(this.query);
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    this.focusedIndex = -1;
+                }
+            },
+
+            selectResult(index) {
+                const result = this.searchResults[index];
+                if (result) {
+                    this.showDetails(result.type, result.id);
+                }
+            },
+
+            scrollToFocused() {
+                this.$nextTick(() => {
+                    const rows = document.querySelectorAll('.search-result-row');
+                    if (rows[this.focusedIndex]) {
+                        rows[this.focusedIndex].scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'nearest'
+                        });
+                    }
+                });
             },
 
             showDetails(type, id) {
-                // Close command bar
                 const commandModal = bootstrap.Modal.getInstance(document.getElementById('command-bar'));
                 if (commandModal) commandModal.hide();
 
-                // Show detail modal
                 if (window.searchDetailModalInstance) {
                     window.searchDetailModalInstance.show(type, id);
                 }
-            },
-
-            handleEnter() {
-                // If a result is focused, select it
-                if (this.focusedIndex >= 0 && this.searchResults[this.focusedIndex]) {
-                    const result = this.searchResults[this.focusedIndex];
-                    this.showDetails(result.type, result.id);
-                    return;
-                }
-
-                // If there are search results but none focused, select the first one
-                if (this.searchResults.length > 0) {
-                    const result = this.searchResults[0];
-                    this.showDetails(result.type, result.id);
-                    return;
-                }
-
-                // Otherwise, try command handling
-                this.handleCommand(this.query);
-            },
-
-            focusFirstResult() {
-                if (this.searchResults.length > 0) {
-                    this.focusedIndex = 0;
-                    this.$nextTick(() => {
-                        this.focusResultAtIndex(0);
-                    });
-                }
-            },
-
-            focusPreviousResult(currentIndex) {
-                if (currentIndex > 0) {
-                    this.focusedIndex = currentIndex - 1;
-                    this.focusResultAtIndex(this.focusedIndex);
-                } else {
-                    // If at the first result, go back to search input
-                    this.focusSearchInput();
-                }
-            },
-
-            focusNextResult(currentIndex) {
-                if (currentIndex < this.searchResults.length - 1) {
-                    this.focusedIndex = currentIndex + 1;
-                    this.focusResultAtIndex(this.focusedIndex);
-                }
-            },
-
-            focusResultAtIndex(index) {
-                const element = this.$refs['result-' + index];
-                if (element && element[0]) {
-                    element[0].focus();
-                }
-            },
-
-            focusSearchInput() {
-                this.focusedIndex = -1;
-                this.$refs.searchInput.focus();
             },
 
             handleCommand(query) {
@@ -327,7 +340,6 @@
         }
     });
 
-    // Auto-focus search input when modal opens
     document.getElementById('command-bar').addEventListener('shown.bs.modal', function () {
         const input = this.querySelector('input[type="text"]');
         if (input) {
@@ -338,7 +350,6 @@
         }
     });
 
-    // Reset focus when modal closes
     document.getElementById('command-bar').addEventListener('hidden.bs.modal', function () {
         const searchComponent = Alpine.$data(this);
         if (searchComponent) {
@@ -350,26 +361,19 @@
 </script>
 
 <style>
-    /* Keyboard navigation styles */
-    #search-results-list tbody tr:focus {
+    #search-results-list tbody tr.table-active {
+        background-color: rgba(13, 110, 253, 0.15) !important;
         outline: 2px solid #0d6efd;
         outline-offset: -2px;
-        box-shadow: inset 0 0 0 2px #0d6efd;
     }
 
-    #search-results-list tbody tr.table-active {
-        background-color: rgba(13, 110, 253, 0.1);
-        font-weight: 500;
+    #search-results-list tbody tr {
+        transition: all 0.15s ease-in-out;
     }
 
     kbd {
         font-size: 0.75rem;
         font-weight: 600;
         line-height: 1;
-    }
-
-    /* Smooth transitions for focus changes */
-    #search-results-list tbody tr {
-        transition: background-color 0.15s ease-in-out;
     }
 </style>

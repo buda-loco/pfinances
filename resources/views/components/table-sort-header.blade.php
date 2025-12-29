@@ -1,12 +1,27 @@
-@props(['sortField', 'currentField' => '', 'direction' => 'asc', 'label'])
+@props(['sortField', 'label', 'route'])
+
+@php
+    $currentSortBy = request('sort_by');
+    $currentSortOrder = request('sort_order', 'asc');
+    $isActive = $currentSortBy === $sortField;
+    $newSortOrder = $isActive && $currentSortOrder === 'asc' ? 'desc' : 'asc';
+
+    // Build URL preserving all existing query parameters
+    $queryParams = array_merge(request()->query(), [
+        'sort_by' => $sortField,
+        'sort_order' => $newSortOrder
+    ]);
+@endphp
 
 <th {{ $attributes }}>
-    <a href="javascript:void(0)"
-       class="text-decoration-none text-muted d-flex align-items-center gap-1"
-       aria-sort="{{ $currentField === $sortField ? ($direction === 'asc' ? 'ascending' : 'descending') : 'none' }}">
+    <a href="{{ route($route, $queryParams) }}"
+       class="text-decoration-none text-muted extra-small fw-bold text-uppercase tracking-wider d-inline-flex align-items-center gap-1 hover-primary"
+       aria-sort="{{ $isActive ? ($currentSortOrder === 'asc' ? 'ascending' : 'descending') : 'none' }}">
         {{ $label }}
-        @if($currentField === $sortField)
-            <i class="fa-solid fa-sort-{{ $direction === 'asc' ? 'up' : 'down' }}"></i>
+        @if($isActive)
+            <i class="fa-solid fa-sort-{{ $currentSortOrder === 'asc' ? 'up' : 'down' }} small"></i>
+        @else
+            <i class="fa-solid fa-sort small opacity-25"></i>
         @endif
     </a>
 </th>

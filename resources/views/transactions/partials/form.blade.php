@@ -1,5 +1,5 @@
 @php
-    $action = $transaction ? route('transactions.update', $transaction) : route('transactions.index'); // Controller doesn't have store, so this usually goes to a bulk upload or similar, but let's assume index for now or handle via JS
+    $action = $transaction ? route('transactions.update', $transaction) : route('transactions.store');
     $method = $transaction ? 'PATCH' : 'POST';
 @endphp
 

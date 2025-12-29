@@ -3,14 +3,25 @@
 @section('title', 'Edit Budget')
 
 @section('content')
+    <x-breadcrumb :items="[
+        ['label' => 'Budgets', 'url' => route('budgets.index')],
+        ['label' => $budget->category->name]
+    ]" />
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 px-4 py-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0">Edit Budget: {{ $budget->category->name }}</h5>
-            <form action="{{ route('budgets.destroy', $budget) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this budget?')">
+            <form id="delete-budget-form" action="{{ route('budgets.destroy', $budget) }}" method="POST">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-link link-danger p-0 text-decoration-none small">
+                <button type="button"
+                    @click="$dispatch('confirm', {
+                        title: 'Delete Budget',
+                        message: 'Are you sure you want to delete this budget? This action cannot be undone.',
+                        confirmText: 'Delete',
+                        onConfirm: () => document.getElementById('delete-budget-form').submit()
+                    })"
+                    class="btn btn-link link-danger p-0 text-decoration-none small">
                     <i class="fa-solid fa-trash-can me-1"></i> Delete Budget
                 </button>
             </form>

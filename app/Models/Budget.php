@@ -10,7 +10,7 @@ class Budget extends Model
     protected $fillable = [
         'category_id',
         'account_id',
-        'user_id',
+        // 'user_id', // SECURITY: Removed from fillable to prevent mass assignment attacks
         'entity_type_id',
         'amount',
         'currency',
@@ -20,6 +20,9 @@ class Budget extends Model
         'is_active',
         'notes',
     ];
+
+    // Guard user_id from mass assignment
+    protected $guarded = ['user_id'];
 
     protected $casts = [
         'amount' => 'decimal:2',

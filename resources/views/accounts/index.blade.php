@@ -21,7 +21,7 @@
                     </div>
                     <div class="col-12 col-md-auto d-flex justify-content-md-end">
                         <a href="{{ route('accounts.create') }}"
-                            class="btn btn-primary d-flex align-items-center gap-2 px-4">
+                            class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold">
                             <i class="fa-solid fa-plus"></i> Create Account
                         </a>
                     </div>
@@ -47,17 +47,13 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-4 text-muted extra-small fw-bold text-uppercase tracking-wider">Account Name
-                                </th>
-                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider">Type</th>
-                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider">Institution</th>
-                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider">Owner</th>
-                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-end">Balance
-                                </th>
-                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-center">Status
-                                </th>
-                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-center">Actions
-                                </th>
+                                <x-table-sort-header sortField="name" label="Account Name" route="accounts.index" class="ps-4" />
+                                <x-table-sort-header sortField="account_type" label="Type" route="accounts.index" />
+                                <x-table-sort-header sortField="institution" label="Institution" route="accounts.index" />
+                                <x-table-sort-header sortField="ownership" label="Owner" route="accounts.index" />
+                                <x-table-sort-header sortField="current_balance" label="Balance" route="accounts.index" class="text-end" />
+                                <x-table-sort-header sortField="is_active" label="Status" route="accounts.index" class="text-center" />
+                                <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -116,8 +112,9 @@
                                     </td>
                                     <td class="text-center">
                                         <a href="{{ route('accounts.edit', $account) }}"
-                                            class="btn btn-light btn-sm border d-inline-flex align-items-center gap-1">
-                                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                                            class="btn btn-link link-secondary p-0"
+                                            aria-label="Edit {{ $account->name }}">
+                                            <i class="fa-solid fa-pen-to-square"></i>
                                         </a>
                                     </td>
                                 </tr>
@@ -170,6 +167,11 @@
                 }
             }
         });
+
+        // Show success toast for newly created account
+        @if(session('created_account_id'))
+            window.toast('Account "{{ session('created_account_name') }}" created successfully.', 'success', 5000);
+        @endif
     </script>
 
     <style>

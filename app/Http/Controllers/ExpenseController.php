@@ -16,205 +16,26 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
-        $currentDate = Carbon::now();
-        // Check if value is present in request (even empty), otherwise default
-        $selectedMonth = $request->has('month') ? $request->input('month') : $currentDate->month;
-        $selectedYear = $request->has('year') ? $request->input('year') : $currentDate->year;
+        $data = $this->getExpenseData($request);
 
-        // Define ranges based on selection
-        $prevMonthStart = null;
-        $prevMonthEnd = null;
-        $prevYearStart = null;
-        $prevYearEnd = null;
-
-        if ($selectedMonth && $selectedYear) {
-            // Specific Month
-            $currentStart = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->startOfMonth();
-            $currentEnd = $currentStart->copy()->endOfMonth();
-
-            $prevMonthStart = $currentStart->copy()->subMonth();
-            $prevMonthEnd = $prevMonthStart->copy()->endOfMonth();
-
-            $prevYearStart = $currentStart->copy()->subYear();
-            $prevYearEnd = $prevYearStart->copy()->endOfMonth();
-        } elseif (!$selectedMonth && $selectedYear) {
-            // Full Year
-            $currentStart = Carbon::createFromDate($selectedYear, 1, 1)->startOfYear();
-            $currentEnd = $currentStart->copy()->endOfYear();
-
-            // "Prev Month" column not relevant for full year, maybe reuse for Previous Year? 
-            // Or set to null. Let's set to null/empty for now, user can just check Prev Year col.
-            $prevMonthStart = null;
-
-            $prevYearStart = $currentStart->copy()->subYear();
-            $prevYearEnd = $prevYearStart->copy()->endOfYear();
-        } else {
-            // All Time (No Year Selected)
-            $currentStart = Carbon::createFromDate(2000, 1, 1);
-            $currentEnd = Carbon::now()->endOfYear();
-        }
-
-        // Fetch categories (Expense type only or all?) - Assuming all for now, filter in view or here
-        // Usually expenses are specific types, but let's grab all active ones
-        $allCategories = Category::where('is_active', true)->orderBy('name')->get();
-
-        $selectedCategory = $request->input('category_id');
-
-        $categoriesQuery = Category::where('is_active', true);
-        if ($selectedCategory) {
-            $categoriesQuery->where('id', $selectedCategory);
-        }
-        $categories = $categoriesQuery->get();
-
-        // 1. Current Period Actuals
-        $currentActuals = Transaction::whereBetween('transaction_date', [$currentStart, $currentEnd])
-            ->select('category_id', DB::raw('SUM(amount) as total'))
-            ->groupBy('category_id')
-            ->pluck('total', 'category_id');
-
-        // 2. Previous Month Actuals
-        $prevMonthActuals = collect();
-        if ($prevMonthStart) {
-            $prevMonthActuals = Transaction::whereBetween('transaction_date', [$prevMonthStart, $prevMonthEnd])
-                ->select('category_id', DB::raw('SUM(amount) as total'))
-                ->groupBy('category_id')
-                ->pluck('total', 'category_id');
-        }
-
-        // 3. Previous Year Actuals
-        $prevYearActuals = collect();
-        if ($prevYearStart) {
-            $prevYearActuals = Transaction::whereBetween('transaction_date', [$prevYearStart, $prevYearEnd])
-                ->select('category_id', DB::raw('SUM(amount) as total'))
-                ->groupBy('category_id')
-                ->pluck('total', 'category_id');
-        }
-
-        // Transform data for view
-        $summaryData = $categories->map(function ($category) use ($currentActuals, $prevMonthActuals, $prevYearActuals) {
-            $actual = $currentActuals[$category->id] ?? 0;
-
-            // Clean name
-            $category->name = preg_replace('/^\s*[\[\(]*\s*tag\s*[\]\)]*[-_: ]*\s*/i', '', $category->name);
-
-            $dataset = [
-                'category' => $category,
-                'actual' => $actual,
-                'budget' => $category->monthly_budget ?? 0,
-                'diff' => $actual - ($category->monthly_budget ?? 0),
-                'prev_month' => $prevMonthActuals[$category->id] ?? 0,
-                'prev_year' => $prevYearActuals[$category->id] ?? 0,
-            ];
-            return (object) $dataset;
-        });
-
-        // Calculate Totals
-        $totals = [
-            'actual' => $summaryData->sum('actual'),
-            'budget' => $summaryData->sum('budget'),
-            'diff' => $summaryData->sum('diff'),
-            'prev_month' => $summaryData->sum('prev_month'),
-            'prev_year' => $summaryData->sum('prev_year'),
-        ];
-
-        // Determine Period Text for View/Export
-        $periodText = 'All Time';
-        if ($selectedMonth && $selectedYear) {
-            $periodText = $currentStart->format('F Y');
-        } elseif (!$selectedMonth && $selectedYear) {
-            $periodText = "Year " . $selectedYear;
-        }
-
-        return view('expenses.index', compact('summaryData', 'totals', 'selectedMonth', 'selectedYear', 'allCategories', 'selectedCategory', 'periodText'));
+        return view('expenses.index', [
+            'summaryData' => $data['summaryData'],
+            'totals' => $data['totals'],
+            'selectedMonth' => $data['selectedMonth'],
+            'selectedYear' => $data['selectedYear'],
+            'allCategories' => $data['allCategories'],
+            'selectedCategory' => $data['selectedCategory'],
+            'periodText' => $data['periodText']
+        ]);
     }
 
     public function export(Request $request)
     {
         $type = $request->input('type', 'xlsx'); // xlsx or csv
-        $currentDate = Carbon::now();
-        $selectedMonth = $request->has('month') ? $request->input('month') : $currentDate->month;
-        $selectedYear = $request->has('year') ? $request->input('year') : $currentDate->year;
-        $selectedCategory = $request->input('category_id');
+        $data = $this->getExpenseData($request);
 
-        // --- DUPLICATED AGGREGATION LOGIC (Refactor to service in future) ---
-        $prevMonthStart = null;
-        $prevMonthEnd = null;
-        $prevYearStart = null;
-        $prevYearEnd = null;
-
-        $periodText = 'All Time';
-
-        if ($selectedMonth && $selectedYear) {
-            // Specific Month
-            $currentStart = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->startOfMonth();
-            $currentEnd = $currentStart->copy()->endOfMonth();
-            $periodText = $currentStart->format('F Y');
-
-            $prevMonthStart = $currentStart->copy()->subMonth();
-            $prevMonthEnd = $prevMonthStart->copy()->endOfMonth();
-
-            $prevYearStart = $currentStart->copy()->subYear();
-            $prevYearEnd = $prevYearStart->copy()->endOfMonth();
-        } elseif (!$selectedMonth && $selectedYear) {
-            // Full Year
-            $currentStart = Carbon::createFromDate($selectedYear, 1, 1)->startOfYear();
-            $currentEnd = $currentStart->copy()->endOfYear();
-            $periodText = "Year " . $selectedYear;
-
-            $prevMonthStart = null;
-
-            $prevYearStart = $currentStart->copy()->subYear();
-            $prevYearEnd = $prevYearStart->copy()->endOfYear();
-        } else {
-            // All Time
-            $currentStart = Carbon::createFromDate(2000, 1, 1);
-            $currentEnd = Carbon::now()->endOfYear();
-            // periodText default is All Time
-        }
-
-        $categoriesQuery = Category::where('is_active', true);
-        if ($selectedCategory) {
-            $categoriesQuery->where('id', $selectedCategory);
-        }
-        $categories = $categoriesQuery->get();
-
-        $currentActuals = Transaction::whereBetween('transaction_date', [$currentStart, $currentEnd])
-            ->select('category_id', DB::raw('SUM(amount) as total'))
-            ->groupBy('category_id')
-            ->pluck('total', 'category_id');
-
-        $prevMonthActuals = collect();
-        if ($prevMonthStart) {
-            $prevMonthActuals = Transaction::whereBetween('transaction_date', [$prevMonthStart, $prevMonthEnd])
-                ->select('category_id', DB::raw('SUM(amount) as total'))
-                ->groupBy('category_id')
-                ->pluck('total', 'category_id');
-        }
-
-        $prevYearActuals = collect();
-        if ($prevYearStart) {
-            $prevYearActuals = Transaction::whereBetween('transaction_date', [$prevYearStart, $prevYearEnd])
-                ->select('category_id', DB::raw('SUM(amount) as total'))
-                ->groupBy('category_id')
-                ->pluck('total', 'category_id');
-        }
-
-        $summaryData = $categories->map(function ($category) use ($currentActuals, $prevMonthActuals, $prevYearActuals) {
-            $actual = $currentActuals[$category->id] ?? 0;
-
-            // Clean name
-            $cleanName = preg_replace('/^\s*[\[\(]*\s*tag\s*[\]\)]*[-_: ]*\s*/i', '', $category->name);
-
-            return [
-                'name' => ($category->icon ? $category->icon . ' ' : '') . $cleanName,
-                'actual' => $actual,
-                'budget' => $category->monthly_budget ?? 0,
-                'diff' => $actual - ($category->monthly_budget ?? 0),
-                'prev_month' => $prevMonthActuals[$category->id] ?? 0,
-                'prev_year' => $prevYearActuals[$category->id] ?? 0,
-            ];
-        });
-        // ------------------------------------------------------------------
+        $summaryData = $data['summaryDataArray'];
+        $periodText = $data['periodText'];
 
         // CREATE SPREADSHEET
         $spreadsheet = new Spreadsheet();
@@ -261,7 +82,7 @@ class ExpenseController extends Controller
         }
 
         // GENERATE FILE
-        $filename = 'expenses-' . $selectedMonth . '-' . $selectedYear;
+        $filename = 'expenses-' . $data['selectedMonth'] . '-' . $data['selectedYear'];
 
         if ($type === 'csv') {
             $writer = new Csv($spreadsheet);
@@ -279,5 +100,133 @@ class ExpenseController extends Controller
             $writer->save('php://output');
         }
         exit;
+    }
+
+    /**
+     * Extract expense data calculation logic to avoid duplication between index and export
+     */
+    private function getExpenseData(Request $request): array
+    {
+        $currentDate = Carbon::now();
+        $selectedMonth = $request->has('month') ? $request->input('month') : $currentDate->month;
+        $selectedYear = $request->has('year') ? $request->input('year') : $currentDate->year;
+        $selectedCategory = $request->input('category_id');
+
+        // Define ranges based on selection
+        $prevMonthStart = null;
+        $prevMonthEnd = null;
+        $prevYearStart = null;
+        $prevYearEnd = null;
+        $periodText = 'All Time';
+
+        if ($selectedMonth && $selectedYear) {
+            // Specific Month
+            $currentStart = Carbon::createFromDate($selectedYear, $selectedMonth, 1)->startOfMonth();
+            $currentEnd = $currentStart->copy()->endOfMonth();
+            $periodText = $currentStart->format('F Y');
+
+            $prevMonthStart = $currentStart->copy()->subMonth();
+            $prevMonthEnd = $prevMonthStart->copy()->endOfMonth();
+
+            $prevYearStart = $currentStart->copy()->subYear();
+            $prevYearEnd = $prevYearStart->copy()->endOfMonth();
+        } elseif (!$selectedMonth && $selectedYear) {
+            // Full Year
+            $currentStart = Carbon::createFromDate($selectedYear, 1, 1)->startOfYear();
+            $currentEnd = $currentStart->copy()->endOfYear();
+            $periodText = "Year " . $selectedYear;
+
+            $prevYearStart = $currentStart->copy()->subYear();
+            $prevYearEnd = $prevYearStart->copy()->endOfYear();
+        } else {
+            // All Time
+            $currentStart = Carbon::createFromDate(2000, 1, 1);
+            $currentEnd = Carbon::now()->endOfYear();
+        }
+
+        // Fetch categories
+        $allCategories = Category::where('is_active', true)->orderBy('name')->get();
+
+        $categoriesQuery = Category::where('is_active', true);
+        if ($selectedCategory) {
+            $categoriesQuery->where('id', $selectedCategory);
+        }
+        $categories = $categoriesQuery->get();
+
+        // Aggregate current period actuals
+        $currentActuals = Transaction::whereBetween('transaction_date', [$currentStart, $currentEnd])
+            ->select('category_id', DB::raw('SUM(amount) as total'))
+            ->groupBy('category_id')
+            ->pluck('total', 'category_id');
+
+        // Aggregate previous month actuals
+        $prevMonthActuals = collect();
+        if ($prevMonthStart) {
+            $prevMonthActuals = Transaction::whereBetween('transaction_date', [$prevMonthStart, $prevMonthEnd])
+                ->select('category_id', DB::raw('SUM(amount) as total'))
+                ->groupBy('category_id')
+                ->pluck('total', 'category_id');
+        }
+
+        // Aggregate previous year actuals
+        $prevYearActuals = collect();
+        if ($prevYearStart) {
+            $prevYearActuals = Transaction::whereBetween('transaction_date', [$prevYearStart, $prevYearEnd])
+                ->select('category_id', DB::raw('SUM(amount) as total'))
+                ->groupBy('category_id')
+                ->pluck('total', 'category_id');
+        }
+
+        // Transform data for view (returns objects for view compatibility)
+        $summaryData = $categories->map(function ($category) use ($currentActuals, $prevMonthActuals, $prevYearActuals) {
+            $actual = $currentActuals[$category->id] ?? 0;
+
+            // Clean name for display
+            $category->name = preg_replace('/^\s*[\[\(]*\s*tag\s*[\]\)]*[-_: ]*\s*/i', '', $category->name);
+
+            return (object) [
+                'category' => $category,
+                'actual' => $actual,
+                'budget' => $category->monthly_budget ?? 0,
+                'diff' => $actual - ($category->monthly_budget ?? 0),
+                'prev_month' => $prevMonthActuals[$category->id] ?? 0,
+                'prev_year' => $prevYearActuals[$category->id] ?? 0,
+            ];
+        });
+
+        // Transform data for export (returns arrays)
+        $summaryDataArray = $categories->map(function ($category) use ($currentActuals, $prevMonthActuals, $prevYearActuals) {
+            $actual = $currentActuals[$category->id] ?? 0;
+            $cleanName = preg_replace('/^\s*[\[\(]*\s*tag\s*[\]\)]*[-_: ]*\s*/i', '', $category->name);
+
+            return [
+                'name' => ($category->icon ? $category->icon . ' ' : '') . $cleanName,
+                'actual' => $actual,
+                'budget' => $category->monthly_budget ?? 0,
+                'diff' => $actual - ($category->monthly_budget ?? 0),
+                'prev_month' => $prevMonthActuals[$category->id] ?? 0,
+                'prev_year' => $prevYearActuals[$category->id] ?? 0,
+            ];
+        });
+
+        // Calculate totals
+        $totals = [
+            'actual' => $summaryData->sum('actual'),
+            'budget' => $summaryData->sum('budget'),
+            'diff' => $summaryData->sum('diff'),
+            'prev_month' => $summaryData->sum('prev_month'),
+            'prev_year' => $summaryData->sum('prev_year'),
+        ];
+
+        return [
+            'summaryData' => $summaryData,
+            'summaryDataArray' => $summaryDataArray,
+            'totals' => $totals,
+            'selectedMonth' => $selectedMonth,
+            'selectedYear' => $selectedYear,
+            'allCategories' => $allCategories,
+            'selectedCategory' => $selectedCategory,
+            'periodText' => $periodText,
+        ];
     }
 }

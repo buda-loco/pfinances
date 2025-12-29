@@ -60,12 +60,12 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-4">Category</th>
-                            <th class="text-end">Actual</th>
-                            <th class="text-end">Budget</th>
-                            <th class="text-end">Difference</th>
-                            <th class="text-end">Prev. Month</th>
-                            <th class="text-end pe-4">Prev. Year</th>
+                            <x-table-sort-header sortField="name" label="Category" route="income.index" class="ps-4" />
+                            <x-table-sort-header sortField="actual" label="Actual" route="income.index" class="text-end" />
+                            <x-table-sort-header sortField="budget" label="Budget" route="income.index" class="text-end" />
+                            <x-table-sort-header sortField="difference" label="Difference" route="income.index" class="text-end" />
+                            <x-table-sort-header sortField="previous_month" label="Prev. Month" route="income.index" class="text-end" />
+                            <x-table-sort-header sortField="previous_year" label="Prev. Year" route="income.index" class="text-end pe-4" />
                         </tr>
                         <!-- Totals Row -->
                         <tr class="bg-primary bg-opacity-10 fw-bold border-bottom-0">

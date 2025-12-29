@@ -3,14 +3,25 @@
 @section('title', 'Edit Category')
 
 @section('content')
+    <x-breadcrumb :items="[
+        ['label' => 'Categories', 'url' => route('categories.index')],
+        ['label' => $category->name]
+    ]" />
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 px-4 py-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0">Edit Category: {{ $category->name }}</h5>
-            <form action="{{ route('categories.destroy', $category) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this category?')">
+            <form id="delete-category-form" action="{{ route('categories.destroy', $category) }}" method="POST">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-link link-danger p-0 text-decoration-none small">
+                <button type="button"
+                    @click="$dispatch('confirm', {
+                        title: 'Delete Category',
+                        message: 'Are you sure you want to delete this category? This action cannot be undone.',
+                        confirmText: 'Delete',
+                        onConfirm: () => document.getElementById('delete-category-form').submit()
+                    })"
+                    class="btn btn-link link-danger p-0 text-decoration-none small">
                     <i class="fa-solid fa-trash-can me-1"></i> Delete Category
                 </button>
             </form>

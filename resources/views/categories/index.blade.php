@@ -101,11 +101,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th class="ps-4 text-muted extra-small fw-bold text-uppercase tracking-wider">Category Definition</th>
-                            <th class="text-muted extra-small fw-bold text-uppercase tracking-wider">Parent Association</th>
-                            <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-center">Lifecycle</th>
-                            <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-end">Budget Cap</th>
-                            <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-end">Actual vs Target</th>
+                            <x-table-sort-header sortField="name" label="Category Definition" route="categories.index" class="ps-4" />
+                            <x-table-sort-header sortField="parent_id" label="Parent Association" route="categories.index" />
+                            <x-table-sort-header sortField="is_active" label="Lifecycle" route="categories.index" class="text-center" />
+                            <x-table-sort-header sortField="monthly_budget" label="Budget Cap" route="categories.index" class="text-end" />
+                            <x-table-sort-header sortField="total_spent" label="Actual vs Target" route="categories.index" class="text-end" />
                             <th class="text-muted extra-small fw-bold text-uppercase tracking-wider text-center">Actions</th>
                         </tr>
                     </thead>
@@ -192,7 +192,8 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <a href="{{ route('categories.edit', $category) }}" class="btn btn-link link-secondary p-0">
+                                    <a href="{{ route('categories.edit', $category) }}" class="btn btn-link link-secondary p-0"
+                                        aria-label="Edit {{ $category->name }}">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
                                 </td>
@@ -289,8 +290,8 @@
             <h5 class="fw-bold">No categories yet</h5>
             <p class="text-muted small mb-4">Get started by creating your first category.</p>
             <div>
-                <a href="{{ route('categories.create') }}" class="btn btn-primary px-4 fw-bold">
-                    <i class="fa-solid fa-plus small"></i> Create Category
+                <a href="{{ route('categories.create') }}" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold">
+                    <i class="fa-solid fa-plus"></i> Create Category
                 </a>
             </div>
         </div>
@@ -298,5 +299,10 @@
 
     <script>
         const parentCategories = @json($parentCategories);
+
+        // Show success toast for newly created category
+        @if(session('created_category_id'))
+            window.toast('Category "{{ session('created_category_name') }}" created successfully.', 'success', 5000);
+        @endif
     </script>
 @endsection

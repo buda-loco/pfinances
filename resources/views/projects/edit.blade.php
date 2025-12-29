@@ -3,14 +3,25 @@
 @section('title', 'Edit Project')
 
 @section('content')
+    <x-breadcrumb :items="[
+        ['label' => 'Projects', 'url' => route('projects.index')],
+        ['label' => $project->name]
+    ]" />
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 px-4 py-3 d-flex justify-content-between align-items-center">
             <h5 class="fw-bold mb-0">Edit Project: {{ $project->name }}</h5>
-            <form action="{{ route('projects.destroy', $project) }}" method="POST"
-                onsubmit="return confirm('Are you sure you want to delete this project? Transactions will be unlinked.');">
+            <form id="delete-project-form" action="{{ route('projects.destroy', $project) }}" method="POST">
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="btn btn-link link-danger p-0 text-decoration-none small">
+                <button type="button"
+                    @click="$dispatch('confirm', {
+                        title: 'Delete Project',
+                        message: 'Are you sure you want to delete this project? Transactions will be unlinked from this project, but not deleted.',
+                        confirmText: 'Delete Project',
+                        onConfirm: () => document.getElementById('delete-project-form').submit()
+                    })"
+                    class="btn btn-link link-danger p-0 text-decoration-none small">
                     <i class="fa-solid fa-trash-can me-1"></i> Delete Project
                 </button>
             </form>

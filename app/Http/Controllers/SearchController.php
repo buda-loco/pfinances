@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Auth;
 
 class SearchController extends Controller
 {
+    /**
+     * Escape special LIKE wildcards to prevent SQL injection
+     */
+    private function escapeLike($value)
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
     public function search(Request $request)
     {
         $query = $request->input('q', '');
@@ -26,16 +34,19 @@ class SearchController extends Controller
         $userId = Auth::id();
         $results = [];
 
+        // Sanitize search query to prevent SQL injection
+        $searchTerm = $this->escapeLike($query);
+
         // Get user's account IDs once for reuse
         $userAccountIds = Account::where('user_id', $userId)->pluck('id');
 
         // Search Accounts
         $accounts = Account::where('user_id', $userId)
-            ->where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('account_number', 'like', "%{$query}%")
-                    ->orWhere('institution', 'like', "%{$query}%")
-                    ->orWhere('notes', 'like', "%{$query}%");
+            ->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('account_number', 'like', "%{$searchTerm}%")
+                    ->orWhere('institution', 'like', "%{$searchTerm}%")
+                    ->orWhere('notes', 'like', "%{$searchTerm}%");
             })
             ->limit(5)
             ->get();
@@ -57,11 +68,11 @@ class SearchController extends Controller
         // Search Transactions (filter by user's accounts)
         $transactions = $userAccountIds->isNotEmpty()
             ? Transaction::whereIn('account_id', $userAccountIds)
-            ->where(function ($q) use ($query) {
-                $q->where('description', 'like', "%{$query}%")
-                    ->orWhere('user_description', 'like', "%{$query}%")
-                    ->orWhere('notes_and_codes', 'like', "%{$query}%")
-                    ->orWhere('merchant_name', 'like', "%{$query}%");
+            ->where(function ($q) use ($searchTerm) {
+                $q->where('description', 'like', "%{$searchTerm}%")
+                    ->orWhere('user_description', 'like', "%{$searchTerm}%")
+                    ->orWhere('notes_and_codes', 'like', "%{$searchTerm}%")
+                    ->orWhere('merchant_name', 'like', "%{$searchTerm}%");
             })
             ->with(['account', 'category'])
             ->orderBy('transaction_date', 'desc')
@@ -85,10 +96,10 @@ class SearchController extends Controller
         }
 
         // Search Projects
-        $projects = Project::where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('code', 'like', "%{$query}%")
-                    ->orWhere('description', 'like', "%{$query}%");
+        $projects = Project::where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('code', 'like', "%{$searchTerm}%")
+                    ->orWhere('description', 'like', "%{$searchTerm}%");
             })
             ->limit(5)
             ->get();
@@ -108,9 +119,9 @@ class SearchController extends Controller
         }
 
         // Search Categories
-        $categories = Category::where(function ($q) use ($query) {
-                $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('code', 'like', "%{$query}%");
+        $categories = Category::where(function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                    ->orWhere('code', 'like', "%{$searchTerm}%");
             })
             ->limit(5)
             ->get();
@@ -131,12 +142,12 @@ class SearchController extends Controller
 
         // Search Budgets
         $budgets = Budget::where('user_id', $userId)
-            ->where(function ($q) use ($query) {
-                $q->whereHas('category', function ($q) use ($query) {
-                    $q->where('name', 'like', "%{$query}%");
+            ->where(function ($q) use ($searchTerm) {
+                $q->whereHas('category', function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%");
                 })
-                ->orWhereHas('account', function ($q) use ($query) {
-                    $q->where('name', 'like', "%{$query}%");
+                ->orWhereHas('account', function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%");
                 });
             })
             ->with(['category', 'account'])
@@ -364,6 +375,13 @@ class SearchController extends Controller
         $data = $request->input('data');
         $userId = Auth::id();
 
+        // Validate input
+        $request->validate([
+            'type' => 'required|in:transaction,account,budget',
+            'id' => 'required|integer',
+            'data' => 'required|array',
+        ]);
+
         try {
             switch ($type) {
                 case 'transaction':
@@ -371,69 +389,79 @@ class SearchController extends Controller
                     $transaction = Transaction::whereIn('account_id', $userAccountIds)->find($id);
 
                     if (!$transaction) {
-                        return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
+                        return response()->json(['success' => false, 'message' => 'Transaction not found.'], 404);
+                    }
+
+                    // Validate transaction update data
+                    $validated = validator($data, [
+                        'transaction_date' => 'required|date',
+                        'description' => 'required|string|max:255',
+                        'account_id' => 'required|exists:accounts,id',
+                        'category_id' => 'nullable|exists:categories,id',
+                        'merchant_name' => 'nullable|string|max:255',
+                        'notes_and_codes' => 'nullable|string|max:1000',
+                    ])->validate();
+
+                    // Verify new account belongs to user
+                    if (!$userAccountIds->contains($validated['account_id'])) {
+                        return response()->json(['success' => false, 'message' => 'Invalid account.'], 403);
                     }
 
                     $transaction->update([
-                        'transaction_date' => $data['transaction_date'],
-                        'description' => $data['description'],
-                        'account_id' => $data['account_id'],
-                        'category_id' => $data['category_id'] ?: null,
-                        'merchant_name' => $data['merchant_name'],
-                        'notes_and_codes' => $data['notes_and_codes'],
+                        'transaction_date' => $validated['transaction_date'],
+                        'description' => $validated['description'],
+                        'account_id' => $validated['account_id'],
+                        'category_id' => $validated['category_id'] ?: null,
+                        'merchant_name' => $validated['merchant_name'] ?? null,
+                        'notes_and_codes' => $validated['notes_and_codes'] ?? null,
                     ]);
 
-                    return response()->json(['success' => true, 'message' => 'Transaction updated successfully']);
+                    return response()->json(['success' => true, 'message' => 'Transaction updated successfully.']);
 
                 case 'account':
                     $account = Account::where('user_id', $userId)->find($id);
 
                     if (!$account) {
-                        return response()->json(['success' => false, 'message' => 'Account not found'], 404);
+                        return response()->json(['success' => false, 'message' => 'Account not found.'], 404);
                     }
 
-                    $account->update($data);
+                    // Validate account update data - only allow specific fields
+                    $validated = validator($data, [
+                        'name' => 'sometimes|required|string|max:255',
+                        'institution' => 'nullable|string|max:255',
+                        'account_number' => 'nullable|string|max:255',
+                        'notes' => 'nullable|string|max:1000',
+                    ])->validate();
 
-                    return response()->json(['success' => true, 'message' => 'Account updated successfully']);
+                    $account->update($validated);
 
-                case 'project':
-                    $project = Project::find($id);
-
-                    if (!$project) {
-                        return response()->json(['success' => false, 'message' => 'Project not found'], 404);
-                    }
-
-                    $project->update($data);
-
-                    return response()->json(['success' => true, 'message' => 'Project updated successfully']);
-
-                case 'category':
-                    $category = Category::find($id);
-
-                    if (!$category) {
-                        return response()->json(['success' => false, 'message' => 'Category not found'], 404);
-                    }
-
-                    $category->update($data);
-
-                    return response()->json(['success' => true, 'message' => 'Category updated successfully']);
+                    return response()->json(['success' => true, 'message' => 'Account updated successfully.']);
 
                 case 'budget':
                     $budget = Budget::where('user_id', $userId)->find($id);
 
                     if (!$budget) {
-                        return response()->json(['success' => false, 'message' => 'Budget not found'], 404);
+                        return response()->json(['success' => false, 'message' => 'Budget not found.'], 404);
                     }
 
-                    $budget->update($data);
+                    // Validate budget update data
+                    $validated = validator($data, [
+                        'amount' => 'sometimes|required|numeric|min:0',
+                        'notes' => 'nullable|string|max:1000',
+                    ])->validate();
 
-                    return response()->json(['success' => true, 'message' => 'Budget updated successfully']);
+                    $budget->update($validated);
+
+                    return response()->json(['success' => true, 'message' => 'Budget updated successfully.']);
 
                 default:
-                    return response()->json(['success' => false, 'message' => 'Invalid type'], 400);
+                    return response()->json(['success' => false, 'message' => 'Invalid type.'], 400);
             }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => 'Validation failed.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to update: ' . $e->getMessage()], 500);
+            \Log::error('Search update failed', ['type' => $type, 'id' => $id, 'error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to update.'], 500);
         }
     }
 }

@@ -3,6 +3,11 @@
 @section('title', 'Add Account')
 
 @section('content')
+    <x-breadcrumb :items="[
+        ['label' => 'Accounts', 'url' => route('accounts.index')],
+        ['label' => 'Add New Account']
+    ]" />
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 px-4 py-3">
             <h5 class="fw-bold mb-0">Add New Account</h5>

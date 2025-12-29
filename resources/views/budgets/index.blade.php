@@ -12,8 +12,8 @@
                     <p class="text-muted extra-small mb-0">Define fiscal boundaries and monitor category-specific
                         consumption.</p>
                 </div>
-                <a href="{{ route('budgets.create') }}" class="btn btn-primary px-4 fw-bold">
-                    <i class="fa-solid fa-plus me-1 small"></i> Define New Budget
+                <a href="{{ route('budgets.create') }}" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold">
+                    <i class="fa-solid fa-plus"></i> Define New Budget
                 </a>
             </div>
         </div>
@@ -62,6 +62,8 @@
                                         <span class="fs-5" style="color: {{ $budget->category->color ?? '#6366f1' }};">
                                             @if($budget->category->icon && str_contains($budget->category->icon, 'fa-'))
                                                 <i class="{{ $budget->category->icon }}"></i>
+                                            @elseif($budget->category->icon && strtolower($budget->category->icon) === 'tag')
+                                                <span class="fw-bold">{{ mb_substr(preg_replace('/^\s*TAG\s*[-_: ]*\s*/i', '', $budget->category->name), 0, 1) }}</span>
                                             @else
                                                 {{ $budget->category->icon ?? '📊' }}
                                             @endif
@@ -69,7 +71,7 @@
                                     </div>
                                     <div>
                                         <h6 class="fw-bold text-dark mb-0 text-truncate outfit" style="max-width: 150px;">
-                                            {{ $budget->category->name }}
+                                            {{ preg_replace('/^\s*TAG\s*[-_: ]*\s*/i', '', $budget->category->name) }}
                                         </h6>
                                         <p class="text-muted extra-small fw-bold text-uppercase mb-0 tracking-wider">
                                             {{ $budget->period_type }} Allocation
@@ -109,6 +111,7 @@
                                     </span>
                                     <span
                                         class="extra-small fw-bold {{ $budget->remaining >= 0 ? 'text-success' : 'text-danger' }} text-uppercase tracking-wider">
+                                        <i class="fa-solid {{ $budget->remaining >= 0 ? 'fa-circle-check' : 'fa-circle-exclamation' }} me-1"></i>
                                         {{ $budget->remaining >= 0 ? '$' . number_format($budget->remaining, 2) . ' LEFT' : '$' . number_format(abs($budget->remaining), 2) . ' OVER' }}
                                     </span>
                                 </div>
@@ -135,11 +138,20 @@
                 <p class="text-muted small px-md-5">Create your first budget to start tracking spending limits and stay on track
                     with your financial goals.</p>
                 <div class="mt-3">
-                    <a href="{{ route('budgets.create') }}" class="btn btn-primary px-4 fw-bold">
-                        <i class="fa-solid fa-plus me-1"></i> New Budget
+                    <a href="{{ route('budgets.create') }}" class="btn btn-primary d-flex align-items-center gap-2 px-4 fw-bold">
+                        <i class="fa-solid fa-plus"></i> New Budget
                     </a>
                 </div>
             </div>
         @endif
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        // Show success toast for newly created budget
+        @if(session('created_budget_id'))
+            window.toast('Budget for "{{ session('created_budget_name') }}" created successfully.', 'success', 5000);
+        @endif
+    </script>
+@endpush

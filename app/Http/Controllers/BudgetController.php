@@ -14,8 +14,9 @@ class BudgetController extends Controller
     {
         $user = auth()->user();
 
-        // Build query
+        // Build query - CRITICAL: Filter by user_id to prevent data leakage
         $query = Budget::with('category')
+            ->where('user_id', $user->id)
             ->where('is_active', true);
 
         // Filter by period type
@@ -76,25 +77,33 @@ class BudgetController extends Controller
     {
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|string|max:3',
+            'amount' => 'required|numeric|min:0.01|max:999999999.99',
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
             'period_type' => 'required|in:daily,weekly,monthly,yearly',
             'period_start' => 'required|date',
             'period_end' => 'required|date|after_or_equal:period_start',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         $validated['user_id'] = auth()->id();
         $validated['is_active'] = true;
 
-        Budget::create($validated);
+        $budget = Budget::create($validated);
+        $budget->load('category');
 
         return redirect()->route('budgets.index')
-            ->with('success', 'Budget created successfully.');
+            ->with('success', 'Budget created successfully.')
+            ->with('created_budget_id', $budget->id)
+            ->with('created_budget_name', $budget->category->name);
     }
 
     public function edit(Budget $budget)
     {
+        // Authorization: Verify budget belongs to authenticated user
+        if ($budget->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to budget');
+        }
+
         $categories = Category::where('is_active', true)
             ->where('category_type', 'expense')
             ->orderBy('name')
@@ -113,18 +122,24 @@ class BudgetController extends Controller
 
     public function update(Request $request, Budget $budget)
     {
+        // Authorization: Verify budget belongs to authenticated user
+        if ($budget->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to budget');
+        }
+
         $validated = $request->validate([
             'category_id' => 'required|exists:categories,id',
-            'amount' => 'required|numeric|min:0.01',
-            'currency' => 'required|string|max:3',
+            'amount' => 'required|numeric|min:0.01|max:999999999.99',
+            'currency' => ['required', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
             'period_type' => 'required|in:daily,weekly,monthly,yearly',
             'period_start' => 'required|date',
             'period_end' => 'required|date|after_or_equal:period_start',
             'is_active' => 'boolean',
-            'notes' => 'nullable|string',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
-        $validated['is_active'] = $request->has('is_active');
+        // Fix: Use boolean() helper instead of has()
+        $validated['is_active'] = $request->boolean('is_active');
 
         $budget->update($validated);
 
@@ -134,6 +149,11 @@ class BudgetController extends Controller
 
     public function destroy(Budget $budget)
     {
+        // Authorization: Verify budget belongs to authenticated user
+        if ($budget->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized access to budget');
+        }
+
         $budget->delete();
 
         return redirect()->route('budgets.index')

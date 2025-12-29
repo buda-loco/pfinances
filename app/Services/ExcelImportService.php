@@ -13,16 +13,33 @@ use Illuminate\Support\Facades\Log;
 
 class ExcelImportService
 {
+    protected $userId;
     protected $filePath;
     protected $user;
 
-    public function __construct(string $filePath, User $user)
+    public function __construct($userId)
     {
-        $this->filePath = $filePath;
-        $this->user = $user;
+        $this->userId = $userId;
     }
 
-    public function import(): array
+    /**
+     * Import CSV file - matches FrolloImportService interface
+     */
+    public function importCsv($filePath): array
+    {
+        $this->user = User::find($this->userId);
+        if (!$this->user) {
+            throw new \Exception('User not found');
+        }
+
+        $this->filePath = $filePath;
+        return $this->import();
+    }
+
+    /**
+     * Internal import method
+     */
+    protected function import(): array
     {
         $stats = [
             'categories' => 0,
